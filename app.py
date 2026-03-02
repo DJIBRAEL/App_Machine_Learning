@@ -215,6 +215,51 @@ button[data-baseweb="tab"] {
     width: 100%;
 }
 .stButton > button:hover { transform: translateY(-2px); }
+
+/* Sidebar upload box premium */
+.upload-box {
+    background: linear-gradient(135deg, #16213E, #1A6B72);
+    padding: 14px 16px;
+    border-radius: 10px;
+    border-left: 4px solid #C9A84C;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+}
+
+.upload-box span {
+    color: white;
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+/* File uploader container styling */
+section[data-testid="stFileUploader"] {
+    background: #16213E;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #C9A84C;
+}
+
+/* ── Browse files button ── */
+[data-testid="stFileUploader"] button {
+    background: linear-gradient(135deg, var(--gold), #a07830) !important;
+    color: var(--dark) !important;
+    border: none !important;
+    border-radius: 8px !important;
+    font-family: 'DM Sans', sans-serif !important;
+    font-weight: 700 !important;
+    font-size: 0.85rem !important;
+    letter-spacing: 0.5px !important;
+    padding: 8px 20px !important;
+    transition: transform 0.15s, box-shadow 0.15s !important;
+}
+[data-testid="stFileUploader"] button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 14px rgba(201, 168, 76, 0.45) !important;
+    color: var(--dark) !important;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -364,8 +409,18 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
     st.divider()
-    st.markdown("<p style='color:rgba(255,255,255,0.7);font-size:0.9rem;margin-bottom:8px'>📂 Charger le dataset</p>", unsafe_allow_html=True)
-    uploaded_file = st.file_uploader("Fichier CSV (train.csv Kaggle)", type=['csv'], label_visibility='collapsed')
+
+    st.markdown("""
+    <div class="upload-box">
+        <span>📂 Charger le dataset</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    uploaded_file = st.file_uploader(
+        "Fichier CSV (train.csv Kaggle)",
+        type=['csv'],
+        label_visibility='collapsed'
+    )
     st.markdown("<p style='color:rgba(255,255,255,0.45);font-size:0.76rem;margin-top:8px'>Dataset Kaggle : House Prices - Advanced Regression Techniques</p>", unsafe_allow_html=True)
     st.divider()
     st.markdown("<p style='color:rgba(255,255,255,0.6);font-size:0.82rem'>Les modèles sont entraînés automatiquement à l'importation.</p>", unsafe_allow_html=True)
@@ -410,27 +465,20 @@ if uploaded_file is None:
     with col3:
         st.markdown("""
         <div class="metric-card">
-          <div class="value">+80</div>
-          <div class="label">Features analysées</div>
+          <div class="value">1</div>
+          <div class="label">Dataset chargé</div>
         </div>""", unsafe_allow_html=True)
     st.stop()
 
 # ─────────────────────────────────────────────
-# ENTRAÎNEMENT
+# CHARGEMENT & ENTRAÎNEMENT
 # ─────────────────────────────────────────────
-with st.spinner("⚙️  Entraînement des modèles en cours…"):
-    import tempfile, os
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.csv') as tmp:
-        tmp.write(uploaded_file.read())
-        tmp_path = tmp.name
-
+with st.spinner("⏳ Entraînement des modèles en cours…"):
     (df,
      pipe_rf_reg, pipe_dt_reg, reg_metrics,
      X_reg_test, y_reg_test,
      pipe_rf_clf, pipe_svm_clf, clf_metrics,
-     X_clf_test, y_clf_test, labels_clf) = load_and_train(tmp_path)
-
-    os.unlink(tmp_path)
+     X_clf_test, y_clf_test, labels_clf) = load_and_train(uploaded_file)
 
 # ─────────────────────────────────────────────
 # MÉTRIQUES RAPIDES
@@ -438,290 +486,268 @@ with st.spinner("⚙️  Entraînement des modèles en cours…"):
 c1, c2, c3, c4 = st.columns(4)
 with c1:
     st.markdown(f"""<div class="metric-card">
-        <div class="value">{df.shape[0]:,}</div>
-        <div class="label">Propriétés</div></div>""", unsafe_allow_html=True)
+      <div class="value">{len(df):,}</div>
+      <div class="label">Propriétés</div>
+    </div>""", unsafe_allow_html=True)
 with c2:
     st.markdown(f"""<div class="metric-card">
-        <div class="value">${reg_metrics['Random Forest']['MAE']:,.0f}</div>
-        <div class="label">MAE Régression (RF)</div></div>""", unsafe_allow_html=True)
+      <div class="value">{reg_metrics['Random Forest']['R²']:.3f}</div>
+      <div class="label">R² Régression (RF)</div>
+    </div>""", unsafe_allow_html=True)
 with c3:
     st.markdown(f"""<div class="metric-card">
-        <div class="value">{reg_metrics['Random Forest']['R²']:.3f}</div>
-        <div class="label">R² Régression (RF)</div></div>""", unsafe_allow_html=True)
+      <div class="value">{clf_metrics['Random Forest']['Accuracy']:.3f}</div>
+      <div class="label">Accuracy Classif. (RF)</div>
+    </div>""", unsafe_allow_html=True)
 with c4:
     st.markdown(f"""<div class="metric-card">
-        <div class="value">{clf_metrics['Random Forest']['Accuracy']:.1%}</div>
-        <div class="label">Accuracy Classification</div></div>""", unsafe_allow_html=True)
+      <div class="value">{clf_metrics['SVM']['F1']:.3f}</div>
+      <div class="label">F1 Classif. (SVM)</div>
+    </div>""", unsafe_allow_html=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────
 # TABS
 # ─────────────────────────────────────────────
-tab1, tab2, tab3, tab4 = st.tabs([
-    "🔮 Prédiction Prix",
-    "🏷️ Classification Type",
-    "📊 Performance Régression",
-    "📈 Performance Classification"
+tab1, tab2, tab3 = st.tabs([
+    "📊 Analyse exploratoire",
+    "🤖 Performance des modèles",
+    "🔮 Prédictions"
 ])
 
-# ════════════════════════════════════════════
-# TAB 1 — PRÉDICTION PRIX
-# ════════════════════════════════════════════
+# ══════════════════════════════════════════════
+# TAB 1 — EDA
+# ══════════════════════════════════════════════
 with tab1:
-    st.markdown('<span class="section-title">Estimation du prix de vente</span>', unsafe_allow_html=True)
+    st.markdown('<span class="section-title">Exploration des données</span>', unsafe_allow_html=True)
 
-    with st.form("form_reg"):
-        col_a, col_b, col_c = st.columns(3)
+    col_a, col_b = st.columns(2)
 
-        with col_a:
-            st.markdown("**🏗️ Surface & Structure**")
-            GrLivArea   = st.number_input("Surface habitable (pi²)", min_value=300, max_value=6000, value=1500)
-            TotalBsmtSF = st.number_input("Surface sous-sol (pi²)",  min_value=0,   max_value=3000, value=800)
-            LotArea     = st.number_input("Superficie du terrain (pi²)", min_value=1000, max_value=200000, value=10000)
-            GarageArea  = st.number_input("Surface garage (pi²)",    min_value=0,   max_value=1400, value=400)
+    with col_a:
+        fig, ax = plt.subplots(figsize=(7, 4))
+        ax.hist(df['SalePrice'], bins=50, color='#1A6B72', edgecolor='white', linewidth=0.4)
+        ax.set_title('Distribution des prix de vente', fontsize=13, fontweight='bold')
+        ax.set_xlabel('Prix ($)')
+        ax.set_ylabel('Fréquence')
+        ax.yaxis.grid(True, linestyle='--', alpha=0.5)
+        ax.set_axisbelow(True)
+        fig.tight_layout()
+        st.pyplot(fig)
+        plt.close(fig)
 
-        with col_b:
-            st.markdown("**🛏️ Pièces & Équipements**")
-            BedroomAbvGr = st.slider("Chambres (au-dessus RdC)",  1, 8, 3)
-            FullBath     = st.slider("Salles de bain complètes",  0, 4, 2)
-            TotRmsAbvGrd = st.slider("Total pièces (au-dessus RdC)", 2, 14, 7)
-            GarageCars   = st.slider("Places de garage",          0, 4, 2)
-            Fireplaces   = st.slider("Cheminées",                  0, 4, 1)
-            PoolArea     = st.number_input("Surface piscine (pi²)", min_value=0, max_value=800, value=0)
+    with col_b:
+        fig, ax = plt.subplots(figsize=(7, 4))
+        ax.scatter(df['GrLivArea'], df['SalePrice'],
+                   alpha=0.35, s=18, c='#C9A84C', edgecolors='none')
+        ax.set_title('Surface habitable vs Prix', fontsize=13, fontweight='bold')
+        ax.set_xlabel('Surface habitable (pi²)')
+        ax.set_ylabel('Prix de vente ($)')
+        ax.yaxis.grid(True, linestyle='--', alpha=0.5)
+        ax.set_axisbelow(True)
+        fig.tight_layout()
+        st.pyplot(fig)
+        plt.close(fig)
 
-        with col_c:
-            st.markdown("**⭐ Qualité & Année**")
-            OverallQual  = st.slider("Qualité globale (1-10)",    1, 10, 7)
-            OverallCond  = st.slider("Condition globale (1-10)",  1, 10, 5)
-            YearBuilt    = st.slider("Année de construction",     1872, 2010, 2000)
-            YearRemodAdd = st.slider("Année de rénovation",       1950, 2010, 2005)
-            Neighborhood = st.selectbox("Quartier", sorted(NEIGHBORHOODS))
+    st.markdown("<br>", unsafe_allow_html=True)
 
-        submitted_reg = st.form_submit_button("🔍 Estimer le prix")
+    col_c, col_d = st.columns(2)
 
-    if submitted_reg:
-        input_df = pd.DataFrame([{
-            'GrLivArea': GrLivArea, 'TotalBsmtSF': TotalBsmtSF, 'LotArea': LotArea,
-            'BedroomAbvGr': BedroomAbvGr, 'FullBath': FullBath, 'TotRmsAbvGrd': TotRmsAbvGrd,
-            'OverallQual': OverallQual, 'OverallCond': OverallCond, 'YearBuilt': YearBuilt,
-            'YearRemodAdd': YearRemodAdd, 'GarageCars': GarageCars, 'GarageArea': GarageArea,
-            'PoolArea': PoolArea, 'Fireplaces': Fireplaces, 'Neighborhood': Neighborhood
-        }])
+    with col_c:
+        fig, ax = plt.subplots(figsize=(7, 4))
+        top_nb = df.groupby('Neighborhood')['SalePrice'].median().sort_values(ascending=False).head(10)
+        ax.barh(top_nb.index[::-1], top_nb.values[::-1], color='#1A1A2E', edgecolor='none')
+        ax.set_title('Top 10 quartiers — Prix médian', fontsize=13, fontweight='bold')
+        ax.set_xlabel('Prix médian ($)')
+        ax.xaxis.grid(True, linestyle='--', alpha=0.5)
+        ax.set_axisbelow(True)
+        fig.tight_layout()
+        st.pyplot(fig)
+        plt.close(fig)
 
-        pred_rf = pipe_rf_reg.predict(input_df)[0]
-        pred_dt = pipe_dt_reg.predict(input_df)[0]
+    with col_d:
+        fig, ax = plt.subplots(figsize=(7, 4))
+        qual_price = df.groupby('OverallQual')['SalePrice'].median()
+        ax.bar(qual_price.index, qual_price.values, color='#1A6B72', edgecolor='white', linewidth=0.4)
+        ax.set_title('Qualité globale vs Prix médian', fontsize=13, fontweight='bold')
+        ax.set_xlabel('Note de qualité (1–10)')
+        ax.set_ylabel('Prix médian ($)')
+        ax.yaxis.grid(True, linestyle='--', alpha=0.5)
+        ax.set_axisbelow(True)
+        fig.tight_layout()
+        st.pyplot(fig)
+        plt.close(fig)
 
-        col_r1, col_r2 = st.columns(2)
-        with col_r1:
-            st.markdown(f"""
-            <div class="price-result">
-              <div class="label">Random Forest (recommandé)</div>
-              <div class="price">${pred_rf:,.0f}</div>
-            </div>""", unsafe_allow_html=True)
-        with col_r2:
-            st.markdown(f"""
-            <div style="background:linear-gradient(135deg,#2C3E50,#4A5568);color:white;border-radius:16px;padding:32px;text-align:center">
-              <div style="font-size:0.9rem;opacity:0.7;text-transform:uppercase;letter-spacing:1px">Decision Tree</div>
-              <div style="font-family:'Playfair Display',serif;font-size:3.2rem;font-weight:900;margin:8px 0 0 0">${pred_dt:,.0f}</div>
-            </div>""", unsafe_allow_html=True)
-
-        diff = abs(pred_rf - pred_dt)
-        st.markdown(f"""
-        <div class="info-box">
-          📌 Écart entre les deux modèles : <strong>${diff:,.0f}</strong> — 
-          Nous recommandons d'utiliser l'estimation <strong>Random Forest</strong> (R² = {reg_metrics['Random Forest']['R²']:.3f}).
-        </div>""", unsafe_allow_html=True)
-
-# ════════════════════════════════════════════
-# TAB 2 — CLASSIFICATION TYPE
-# ════════════════════════════════════════════
-with tab2:
-    st.markdown('<span class="section-title">Classification du type de bien</span>', unsafe_allow_html=True)
-
-    with st.form("form_clf"):
-        col_a, col_b = st.columns(2)
-
-        with col_a:
-            st.markdown("**🏗️ Caractéristiques physiques**")
-            c_GrLivArea    = st.number_input("Surface habitable (pi²)", min_value=300, max_value=6000, value=1500, key='c1')
-            c_TotRmsAbvGrd = st.slider("Total pièces (au-dessus RdC)", 2, 14, 7, key='c2')
-            c_OverallQual  = st.slider("Qualité globale (1-10)", 1, 10, 7, key='c3')
-            c_YearBuilt    = st.slider("Année de construction", 1872, 2010, 2000, key='c4')
-            c_GarageCars   = st.slider("Places de garage", 0, 4, 2, key='c5')
-
-        with col_b:
-            st.markdown("**📍 Localisation & Style**")
-            c_Neighborhood = st.selectbox("Quartier", sorted(NEIGHBORHOODS), key='c6')
-            c_HouseStyle   = st.selectbox("Style architectural", HOUSESTYLES, key='c7')
-            model_choice   = st.radio("Modèle de classification", ['Random Forest', 'SVM'], horizontal=True)
-
-        submitted_clf = st.form_submit_button("🏷️ Classifier le bien")
-
-    if submitted_clf:
-        input_clf = pd.DataFrame([{
-            'GrLivArea': c_GrLivArea, 'TotRmsAbvGrd': c_TotRmsAbvGrd,
-            'OverallQual': c_OverallQual, 'YearBuilt': c_YearBuilt,
-            'GarageCars': c_GarageCars,
-            'Neighborhood': c_Neighborhood, 'HouseStyle': c_HouseStyle
-        }])
-
-        model = pipe_rf_clf if model_choice == 'Random Forest' else pipe_svm_clf
-        pred_type = model.predict(input_clf)[0]
-        label = BLDGTYPE_LABELS.get(pred_type, pred_type)
-
-        proba_text = ""
-        if model_choice == 'Random Forest':
-            proba = pipe_rf_clf.predict_proba(input_clf)[0]
-            classes = pipe_rf_clf.classes_
-            proba_df = pd.DataFrame({'Type': classes, 'Probabilité': proba}).sort_values('Probabilité', ascending=False)
-            proba_text = "  ".join([f"{r['Type']}: {r['Probabilité']:.1%}" for _, r in proba_df.head(3).iterrows()])
-
-        st.markdown(f"""
-        <div class="class-result">
-          <div class="label">Type prédit — {model_choice}</div>
-          <div class="btype">{label}</div>
-          <div style="margin-top:12px;font-size:0.85rem;opacity:0.85">Code : {pred_type}</div>
-        </div>""", unsafe_allow_html=True)
-
-        if proba_text:
-            st.markdown(f"""
-            <div class="info-box">
-              📊 <strong>Probabilités (top 3) :</strong> {proba_text}
-            </div>""", unsafe_allow_html=True)
-
-        # Mini barre de proba
-        if model_choice == 'Random Forest':
-            fig_p, ax_p = plt.subplots(figsize=(7, 2.5))
-            fig_p.patch.set_facecolor('#F7F3EE')
-            ax_p.set_facecolor('#F7F3EE')
-            colors = ['#C9A84C' if c == pred_type else '#CBD5E0' for c in proba_df['Type']]
-            ax_p.barh(proba_df['Type'], proba_df['Probabilité'], color=colors, edgecolor='none', height=0.5)
-            ax_p.set_xlim(0, 1)
-            ax_p.set_xlabel('Probabilité')
-            ax_p.set_title('Distribution des probabilités de classe', fontsize=10, pad=8)
-            for i, (_, row) in enumerate(proba_df.iterrows()):
-                ax_p.text(row['Probabilité'] + 0.01, i, f"{row['Probabilité']:.1%}", va='center', fontsize=9)
-            plt.tight_layout()
-            st.pyplot(fig_p)
-            plt.close(fig_p)
-
-# ════════════════════════════════════════════
-# TAB 3 — PERFORMANCE RÉGRESSION
-# ════════════════════════════════════════════
-with tab3:
-    st.markdown('<span class="section-title">Analyse des modèles de régression</span>', unsafe_allow_html=True)
-
-    # Tableau des métriques
-    df_reg_metrics = pd.DataFrame({
-        'Modèle':    list(reg_metrics.keys()),
-        'MAE ($)':   [f"{v['MAE']:,.0f}" for v in reg_metrics.values()],
-        'RMSE ($)':  [f"{v['RMSE']:,.0f}" for v in reg_metrics.values()],
-        'R²':        [f"{v['R²']:.4f}" for v in reg_metrics.values()],
-    })
-    st.table(df_reg_metrics.set_index('Modèle'))
-
-    # Scatter plots
-    fig, axes = plt.subplots(1, 2, figsize=(13, 5))
-    fig.patch.set_facecolor('#F7F3EE')
-    colors_m = {'Random Forest': '#1A6B72', 'Decision Tree': '#C9A84C'}
-
-    for ax, (name, metrics) in zip(axes, reg_metrics.items()):
-        y_pred = metrics['y_pred']
-        ax.set_facecolor('#FAFAFA')
-        ax.scatter(y_reg_test, y_pred, alpha=0.35, s=18,
-                   color=colors_m[name], edgecolors='none')
-        lim = [y_reg_test.min(), y_reg_test.max()]
-        ax.plot(lim, lim, 'k--', linewidth=1.2, alpha=0.5)
-        ax.set_title(f'{name}', fontsize=12, fontweight='bold')
-        ax.set_xlabel('Prix réel ($)', fontsize=9)
-        ax.set_ylabel('Prix prédit ($)', fontsize=9)
-        ax.text(0.05, 0.93, f'R² = {metrics["R²"]:.4f}', transform=ax.transAxes,
-                fontsize=10, bbox=dict(facecolor='white', alpha=0.8, edgecolor='none'))
-
-    plt.suptitle('Prédictions vs Valeurs réelles — SalePrice', fontsize=13, fontweight='bold')
-    plt.tight_layout()
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("**Matrice de corrélation — variables numériques clés**")
+    corr_cols = ['SalePrice','GrLivArea','TotalBsmtSF','OverallQual',
+                 'GarageArea','YearBuilt','TotRmsAbvGrd','FullBath']
+    fig, ax = plt.subplots(figsize=(9, 6))
+    sns.heatmap(df[corr_cols].corr(), annot=True, fmt='.2f', cmap='YlOrBr',
+                linewidths=0.5, ax=ax, cbar_kws={'shrink': 0.8})
+    ax.set_title('Corrélations entre variables clés', fontsize=13, fontweight='bold')
+    fig.tight_layout()
     st.pyplot(fig)
     plt.close(fig)
 
-    # Feature importance RF
-    st.markdown("**Importance des features — Random Forest Regressor**")
-    rf_step = pipe_rf_reg.named_steps['model']
-    feat_names = REG_NUM_FEATURES + REG_CAT_FEATURES
-    importances = pd.Series(rf_step.feature_importances_, index=feat_names).sort_values()
+# ══════════════════════════════════════════════
+# TAB 2 — PERFORMANCE
+# ══════════════════════════════════════════════
+with tab2:
+    st.markdown('<span class="section-title">Performance des modèles</span>', unsafe_allow_html=True)
 
-    fig_i, ax_i = plt.subplots(figsize=(9, 5))
-    fig_i.patch.set_facecolor('#F7F3EE')
-    ax_i.set_facecolor('#FAFAFA')
-    colors_i = ['#C9A84C' if v > 0.1 else '#1A6B72' for v in importances]
-    importances.plot(kind='barh', ax=ax_i, color=colors_i, edgecolor='none')
-    ax_i.set_title('Feature Importance', fontsize=11, fontweight='bold')
-    ax_i.set_xlabel('Importance relative')
-    plt.tight_layout()
-    st.pyplot(fig_i)
-    plt.close(fig_i)
+    # ── Régression ──────────────────────────────
+    st.markdown("### 📈 Régression — Prédiction du prix")
+    r1, r2 = st.columns(2)
+    for col, (name, m) in zip([r1, r2], reg_metrics.items()):
+        with col:
+            st.markdown(f"**{name}**")
+            mc1, mc2, mc3 = st.columns(3)
+            mc1.metric("MAE", f"${m['MAE']:,.0f}")
+            mc2.metric("RMSE", f"${m['RMSE']:,.0f}")
+            mc3.metric("R²", f"{m['R²']:.4f}")
 
-# ════════════════════════════════════════════
-# TAB 4 — PERFORMANCE CLASSIFICATION
-# ════════════════════════════════════════════
-with tab4:
-    st.markdown('<span class="section-title">Analyse des modèles de classification</span>', unsafe_allow_html=True)
+            fig, ax = plt.subplots(figsize=(5, 4))
+            ax.scatter(y_reg_test, m['y_pred'], alpha=0.35, s=14,
+                       c='#1A6B72' if name == 'Random Forest' else '#C9A84C',
+                       edgecolors='none')
+            lims = [min(y_reg_test.min(), m['y_pred'].min()),
+                    max(y_reg_test.max(), m['y_pred'].max())]
+            ax.plot(lims, lims, 'r--', lw=1.2, alpha=0.7)
+            ax.set_xlabel('Valeur réelle ($)')
+            ax.set_ylabel('Valeur prédite ($)')
+            ax.set_title(f'{name} — Réel vs Prédit', fontsize=11, fontweight='bold')
+            ax.grid(True, linestyle='--', alpha=0.4)
+            fig.tight_layout()
+            st.pyplot(fig)
+            plt.close(fig)
 
-    # Tableau métriques
-    df_clf_metrics = pd.DataFrame({
-        'Modèle':    list(clf_metrics.keys()),
-        'Accuracy':  [f"{v['Accuracy']:.4f}" for v in clf_metrics.values()],
-        'F1 (wt.)':  [f"{v['F1']:.4f}" for v in clf_metrics.values()],
-    })
-    st.table(df_clf_metrics.set_index('Modèle'))
+    st.divider()
 
-    model_sel = st.selectbox("Sélectionner le modèle à analyser :", ['Random Forest', 'SVM'])
+    # ── Classification ──────────────────────────
+    st.markdown("### 🏷️ Classification — Type de bâtiment")
+    clf1, clf2 = st.columns(2)
+    for col, (name, m) in zip([clf1, clf2], clf_metrics.items()):
+        with col:
+            st.markdown(f"**{name}**")
+            ca, cf = st.columns(2)
+            ca.metric("Accuracy", f"{m['Accuracy']:.4f}")
+            cf.metric("F1 (weighted)", f"{m['F1']:.4f}")
 
-    chosen = clf_metrics[model_sel]
+            fig, ax = plt.subplots(figsize=(5, 4))
+            sns.heatmap(m['cm'], annot=True, fmt='d',
+                        cmap='Blues' if name == 'Random Forest' else 'Oranges',
+                        xticklabels=labels_clf, yticklabels=labels_clf,
+                        linewidths=0.5, ax=ax)
+            ax.set_xlabel('Prédit')
+            ax.set_ylabel('Réel')
+            ax.set_title(f'{name} — Matrice de confusion', fontsize=11, fontweight='bold')
+            plt.xticks(rotation=45, ha='right', fontsize=8)
+            plt.yticks(rotation=0, fontsize=8)
+            fig.tight_layout()
+            st.pyplot(fig)
+            plt.close(fig)
 
-    col_cm, col_rp = st.columns([1, 1])
-    with col_cm:
-        st.markdown(f"**Matrice de confusion — {model_sel}**")
-        fig_cm, ax_cm = plt.subplots(figsize=(6, 4.5))
-        fig_cm.patch.set_facecolor('#F7F3EE')
-        sns.heatmap(chosen['cm'], annot=True, fmt='d', cmap='YlGnBu',
-                    xticklabels=labels_clf, yticklabels=labels_clf,
-                    ax=ax_cm, linewidths=0.5)
-        ax_cm.set_xlabel('Prédit', fontsize=10)
-        ax_cm.set_ylabel('Réel', fontsize=10)
-        ax_cm.set_title('Confusion Matrix', fontsize=11, fontweight='bold')
-        plt.tight_layout()
-        st.pyplot(fig_cm)
-        plt.close(fig_cm)
+            with st.expander(f"Rapport détaillé — {name}"):
+                st.code(m['report'])
 
-    with col_rp:
-        st.markdown(f"**Rapport de classification — {model_sel}**")
-        st.code(chosen['report'], language=None)
+# ══════════════════════════════════════════════
+# TAB 3 — PRÉDICTIONS
+# ══════════════════════════════════════════════
+with tab3:
+    st.markdown('<span class="section-title">Faire une prédiction</span>', unsafe_allow_html=True)
 
-    # Distribution prédictions vs réel
-    fig_d, axes_d = plt.subplots(1, 2, figsize=(12, 4))
-    fig_d.patch.set_facecolor('#F7F3EE')
-    for ax, (title, data) in zip(axes_d, [('Réel', y_clf_test), ('Prédit', chosen['y_pred'])]):
-        counts = pd.Series(data).value_counts().sort_index()
-        ax.set_facecolor('#FAFAFA')
-        bars = ax.bar(counts.index, counts.values,
-                      color='#1A6B72' if title=='Réel' else '#C9A84C', edgecolor='none')
-        ax.set_title(f'Distribution {title}', fontsize=11, fontweight='bold')
-        ax.set_xlabel('BldgType')
-        ax.set_ylabel('Nombre')
-        for bar in bars:
-            ax.text(bar.get_x()+bar.get_width()/2, bar.get_height()+2,
-                    str(int(bar.get_height())), ha='center', fontsize=9)
-    plt.suptitle(f'Distribution des classes — {model_sel}', fontsize=12, fontweight='bold')
-    plt.tight_layout()
-    st.pyplot(fig_d)
-    plt.close(fig_d)
+    pred_col, res_col = st.columns([1.4, 1])
 
-# ─────────────────────────────────────────────
-# FOOTER
-# ─────────────────────────────────────────────
-st.markdown("""
-<div style="text-align:center;margin-top:40px;padding:20px;opacity:0.4;font-size:0.8rem">
-  ImmoPredict — Plateforme ML · Régression & Classification · Dataset Kaggle House Prices
-</div>
-""", unsafe_allow_html=True)
+    with pred_col:
+        st.markdown("#### Caractéristiques du bien")
+
+        p1, p2 = st.columns(2)
+        with p1:
+            gr_liv   = st.number_input("Surface habitable (pi²)", 400, 6000, 1500, 50)
+            bsmt     = st.number_input("Surface sous-sol (pi²)",  0, 4000, 800,  50)
+            lot      = st.number_input("Surface terrain (pi²)",   1000, 200000, 8000, 500)
+            bedrooms = st.slider("Chambres", 0, 8, 3)
+            fullbath = st.slider("Salles de bain complètes", 0, 4, 2)
+            totrms   = st.slider("Total pièces (hors bains)", 2, 14, 7)
+        with p2:
+            qual     = st.slider("Qualité globale (1–10)", 1, 10, 6)
+            cond     = st.slider("État général (1–10)",    1, 10, 5)
+            yr_built = st.slider("Année construction", 1872, 2010, 1990)
+            yr_remod = st.slider("Année rénovation",   1950, 2010, 2000)
+            gar_cars = st.slider("Capacité garage (voitures)", 0, 4, 2)
+            gar_area = st.number_input("Surface garage (pi²)", 0, 1500, 480, 20)
+            pool     = st.number_input("Surface piscine (pi²)", 0, 800, 0, 10)
+            fires    = st.slider("Cheminées", 0, 4, 1)
+
+        neighborhood = st.selectbox("Quartier", NEIGHBORHOODS)
+        housestyle   = st.selectbox("Style de maison", HOUSESTYLES)
+
+        predict_btn = st.button("🔮 Lancer la prédiction")
+
+    with res_col:
+        st.markdown("#### Résultats")
+        if predict_btn:
+            # Régression
+            input_reg = pd.DataFrame([{
+                'GrLivArea': gr_liv, 'TotalBsmtSF': bsmt, 'LotArea': lot,
+                'BedroomAbvGr': bedrooms, 'FullBath': fullbath,
+                'TotRmsAbvGrd': totrms, 'OverallQual': qual, 'OverallCond': cond,
+                'YearBuilt': yr_built, 'YearRemodAdd': yr_remod,
+                'GarageCars': gar_cars, 'GarageArea': gar_area,
+                'PoolArea': pool, 'Fireplaces': fires,
+                'Neighborhood': neighborhood
+            }])
+            price_rf = pipe_rf_reg.predict(input_reg)[0]
+            price_dt = pipe_dt_reg.predict(input_reg)[0]
+
+            # Classification
+            input_clf = pd.DataFrame([{
+                'GrLivArea': gr_liv, 'TotRmsAbvGrd': totrms,
+                'OverallQual': qual, 'YearBuilt': yr_built,
+                'GarageCars': gar_cars,
+                'Neighborhood': neighborhood, 'HouseStyle': housestyle
+            }])
+            btype_rf  = pipe_rf_clf.predict(input_clf)[0]
+            btype_svm = pipe_svm_clf.predict(input_clf)[0]
+
+            st.markdown(f"""
+            <div class="price-result">
+              <div class="label">Prix estimé — Random Forest</div>
+              <div class="price">${price_rf:,.0f}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            st.markdown("<br>", unsafe_allow_html=True)
+
+            st.markdown(f"""
+            <div class="price-result" style="background:linear-gradient(135deg,#2c3e50,#1A1A2E)">
+              <div class="label">Prix estimé — Decision Tree</div>
+              <div class="price">${price_dt:,.0f}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            st.markdown("<br>", unsafe_allow_html=True)
+
+            st.markdown(f"""
+            <div class="class-result">
+              <div class="label">Type de bâtiment — Random Forest</div>
+              <div class="btype">{BLDGTYPE_LABELS.get(btype_rf, btype_rf)}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            st.markdown("<br>", unsafe_allow_html=True)
+
+            st.markdown(f"""
+            <div class="class-result" style="background:linear-gradient(135deg,#1A6B72,#0d4a50)">
+              <div class="label">Type de bâtiment — SVM</div>
+              <div class="btype">{BLDGTYPE_LABELS.get(btype_svm, btype_svm)}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        else:
+            st.markdown("""
+            <div class="info-box">
+              Renseignez les caractéristiques du bien puis cliquez sur <strong>Lancer la prédiction</strong>.
+            </div>
+            """, unsafe_allow_html=True)
